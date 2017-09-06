@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">BMDS Network Demo</string>
+    <string name="play_video">Play Video</string>
+    <string name="password">Password</string>
+    <string name="username">Username</string>
+    <string name="get_video_list">Get Video List</string>
+    <string name="stop_video">Stop</string>
+    <string name="get_video_text">Press GET VIDEO LIST to retrieve video list</string>
+    <string name="default_no_file_error">No files found</string>
+    <string name="title_format">Play videos from: %s</string>
+</resources>
