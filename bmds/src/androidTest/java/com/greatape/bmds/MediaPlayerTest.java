@@ -58,26 +58,26 @@ public class MediaPlayerTest {
     // The following can be used for more in depth long term and performance testing
     private static boolean PerformanceTest = false;
     private static final int PerformancePlayLength = 120 * 1000;
-    private static final int PerformancePlayMaxIterations = 5;
+    private static final int PerformancePlayMaxIterations = 4;
 
     private Semaphore mSemaphore;
     private Semaphore mLooperThreadSemaphore;
 
     @Before
     public void grantRequiredPermissions() {
-        // In M+ READ_EXTERNAL_STORAGE needs to show a dialog to grant the permission, run this so
-        // the permission is granted before running these tests.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            grantPermission("READ_EXTERNAL_STORAGE");
-        }
+        grantPermission("READ_EXTERNAL_STORAGE");
     }
 
-    private void grantPermission(String permission) {
-        StringBuilder stringBuilder = new StringBuilder("pm grant ");
-        stringBuilder.append(getInstrumentation().getTargetContext().getPackageName());
-        stringBuilder.append(" android.permission.");
-        stringBuilder.append(permission);
-        getInstrumentation().getUiAutomation().executeShellCommand(stringBuilder.toString());
+    void grantPermission(String permission) {
+        // In M+ some permissions needs to show a dialog to grant the permission, run this so
+        // the permission is granted before running these tests.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            StringBuilder stringBuilder = new StringBuilder("pm grant ");
+            stringBuilder.append(getInstrumentation().getTargetContext().getPackageName());
+            stringBuilder.append(" android.permission.");
+            stringBuilder.append(permission);
+            getInstrumentation().getUiAutomation().executeShellCommand(stringBuilder.toString());
+        }
     }
 
     @Before

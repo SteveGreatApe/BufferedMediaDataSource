@@ -13,13 +13,14 @@
  * limitations under the License.
  */
 
-package com.greatape.bmdsapp;
+package com.greatape.bmds;
 
 import android.os.AsyncTask;
 import android.text.TextUtils;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URLConnection;
 import java.util.concurrent.Semaphore;
 
 import jcifs.smb.NtlmPasswordAuthentication;
@@ -32,10 +33,6 @@ import jcifs.smb.SmbFile;
 public class NetworkDirTask extends AsyncTask<String, Void, SmbFile[]> {
     private Listener mListener;
     private IOException mException;
-
-    interface Listener {
-        void fileList(SmbFile[] files, IOException exception);
-    }
 
     static SmbFile[] syncFetch(String workgroup, String networkPath, String username, String password) throws Exception {
         final SmbFile[][] smbFiles = {null};
@@ -52,6 +49,10 @@ public class NetworkDirTask extends AsyncTask<String, Void, SmbFile[]> {
             throw smbException[0];
         }
         return smbFiles[0];
+    }
+
+    interface Listener {
+        void fileList(SmbFile[] files, IOException exception);
     }
 
     NetworkDirTask(Listener listener) {

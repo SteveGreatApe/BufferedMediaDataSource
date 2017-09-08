@@ -36,6 +36,7 @@ import com.greatape.bmds.BufferedMediaDataSource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,14 +48,16 @@ import jcifs.smb.SmbFileInputStream;
  */
 public class DemoActivity extends Activity implements NetworkDirTask.Listener, SurfaceHolder.Callback {
     private static final String TAG = "DemoActivity";
+    private static final String MIME_VIDEO = "video/";
 
     // TODO: Configure these to point to a Workgroup and Folder containing videos on your network.
     private static final String WORKGROUP = "WORKGROUP";
-    private static final String NETWORK_PATH = "smb://EUROAPE/Share2/";
+//    private static final String NETWORK_PATH = "smb://EUROAPE/Share2/";
+    private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/Videos/";
 
     private SurfaceHolder mSurfaceHolder;
     private MediaPlayer mMediaPlayer;
-    private SmbFile[] mNetworkVideos;
+    private ArrayList<SmbFile> mNetworkVideos;
     private SurfaceView mSurfaceView;
     private boolean mRestartOnResume;
 
@@ -94,15 +97,22 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
 
     @Override
     public void fileList(SmbFile[] files, IOException exception) {
-        mNetworkVideos = files;
-        boolean hasVideos = mNetworkVideos != null && mNetworkVideos.length > 0;
+        boolean hasVideos = false;
+        List<String> fileNames = new ArrayList<>();
+        if (files != null) {
+            mNetworkVideos = new ArrayList<>();
+            for (SmbFile smbFile : files) {
+                String mimeType = URLConnection.guessContentTypeFromName(smbFile.getName());
+                if (mimeType != null && mimeType.startsWith(MIME_VIDEO)) {
+                    mNetworkVideos.add(smbFile);
+                    fileNames.add(smbFile.getName());
+                }
+            }
+            hasVideos = fileNames.size() > 0;
+        }
         Spinner spinner = (Spinner)findViewById(R.id.file_list);
         TextView spinnerError = (TextView)findViewById(R.id.spinner_error);
         if (hasVideos) {
-            List<String> fileNames = new ArrayList<>();
-            for(SmbFile videoFile : mNetworkVideos) {
-                fileNames.add(videoFile.getName());
-            }
             ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fileNames);
             dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinner.setAdapter(dataAdapter);
@@ -143,8 +153,8 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
         }
         Spinner fileListSpinner = (Spinner)findViewById(R.id.file_list);
         int selectedIndex = fileListSpinner.getSelectedItemPosition();
-        if (mNetworkVideos != null && selectedIndex < mNetworkVideos.length) {
-            SmbFile smbFile = mNetworkVideos[selectedIndex];
+        if (mNetworkVideos != null && selectedIndex < mNetworkVideos.size()) {
+            SmbFile smbFile = mNetworkVideos.get(selectedIndex);
             try {
                 playNetworkVideo(smbFile);
                 findViewById(R.id.stop_video).setEnabled(true);
