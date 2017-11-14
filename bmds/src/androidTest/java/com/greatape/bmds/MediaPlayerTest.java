@@ -31,11 +31,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
@@ -118,7 +120,8 @@ public class MediaPlayerTest {
                 });
                 if (videoFiles != null) {
                     for (File file : videoFiles) {
-                        doFileTest(file);
+                        doFileTest(file, false);
+                        doFileTest(file, true);
                     }
                 } else {
                     Log.w(TAG, "No test files found in " + testFolder);
@@ -146,19 +149,44 @@ public class MediaPlayerTest {
         doTest(bufferedMediaDataSource);
     }
 
-    private void doFileTest(final File file) throws IOException, InterruptedException {
+    private void doFileTest(final File file, boolean useDataInput) throws IOException, InterruptedException {
         logTestingTitle(file.getPath());
-        BufferedMediaDataSource bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
-            @Override
-            public InputStream openStream() throws IOException {
-                return new FileInputStream(file);
-            }
+        BufferedMediaDataSource bufferedMediaDataSource;
+        if (useDataInput) {
+            bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.DataInputCreator() {
+                @Override
+                public DataInput openDataInput() throws IOException {
+                    return new RandomAccessFile(file, "r");
+                }
 
-            @Override
-            public long length() throws IOException {
-                return file.length();
-            }
-        });
+                @Override
+                public void seek(DataInput dataInput, long seekPos) throws IOException {
+                    ((RandomAccessFile)dataInput).seek(seekPos);
+                }
+
+                @Override
+                public void closeDataInput(DataInput dataInput) throws IOException {
+                    ((RandomAccessFile)dataInput).close();
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return file.length();
+                }
+            });
+        } else {
+            bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
+                @Override
+                public InputStream openStream() throws IOException {
+                    return new FileInputStream(file);
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return file.length();
+                }
+            });
+        }
         doTest(bufferedMediaDataSource);
     }
 

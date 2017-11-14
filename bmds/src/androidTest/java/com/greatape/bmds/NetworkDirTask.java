@@ -20,7 +20,6 @@ import android.text.TextUtils;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URLConnection;
 import java.util.concurrent.Semaphore;
 
 import jcifs.smb.NtlmPasswordAuthentication;

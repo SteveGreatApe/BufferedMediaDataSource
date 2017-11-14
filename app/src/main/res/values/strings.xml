@@ -8,4 +8,7 @@
     <string name="get_video_text">Press GET VIDEO LIST to retrieve video list</string>
     <string name="default_no_file_error">No files found</string>
     <string name="title_format">Play videos from: %s</string>
+    <string name="store_login">Store Login</string>
+    <string name="use_smb_random_access">Use SMB Random access</string>
+    <string name="fetching_list">Fetching video list</string>
 </resources>

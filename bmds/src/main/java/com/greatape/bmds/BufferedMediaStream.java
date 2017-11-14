@@ -25,18 +25,16 @@ import java.io.InputStream;
  * @author Steve Townsend
  */
 @RequiresApi(api = Build.VERSION_CODES.M)
-class BufferedMediaStream {
+class BufferedMediaStream extends BufferedSourceBase{
     private static final String TAG = "Stream";
 
-    private BufferedMediaDataSource bufferedMediaDataSource;
     private InputStream mInputStream;
-    private long mPosition;
-    private int mId;
 
-    BufferedMediaStream(BufferedMediaDataSource bufferedMediaDataSource, int id) throws IOException {
-        this.bufferedMediaDataSource = bufferedMediaDataSource;
+    BufferedMediaStream(BufferedMediaDataSource bufferedMediaDataSource, InputStream inputStream, int id) throws IOException {
+        super(bufferedMediaDataSource, id);
+        this.mBufferedMediaDataSource = bufferedMediaDataSource;
         mId = id;
-        mInputStream = bufferedMediaDataSource.openStream();
+        mInputStream = inputStream;
     }
 
     void close() throws IOException {
@@ -46,36 +44,27 @@ class BufferedMediaStream {
         }
     }
 
-    int id() {
-        return mId;
-    }
-
-    void log(String message, int blockIndex) {
-        BmdsLog.d(TAG, "[" + mId + "] " + message, blockIndex);
-    }
-
-    void log(String message) {
-        BmdsLog.d(TAG, "[" + mId + "] " + message);
-    }
-
-    int read(byte[] buffer, int bufferSize) throws IOException {
+    @Override
+    int read(byte[] buffer) throws IOException {
         log("Reading from: " + mPosition);
         int read = 0;
         do {
-            long len = mInputStream.read(buffer, read, bufferSize - read);
+            long len = mInputStream.read(buffer, read, buffer.length - read);
             if (len <= 0) {
                 log("Reached EOF after reading " + read + " bytes, end position=" + (mPosition + read));
-                bufferedMediaDataSource.removeBufferedStream(this);
+                mBufferedMediaDataSource.removeBufferedStream(this);
                 break;
             }
             read += len;
-            log("Reading to go=" + (bufferSize - read));
-        } while (read < bufferSize);
+            log("Reading to go=" + (buffer.length - read));
+        } while (read < buffer.length);
         mPosition += read;
         return read;
     }
 
-    void skip(long toSkip) throws IOException {
+    @Override
+    void skip(long seekPos) throws IOException {
+        int toSkip = (int)(seekPos - mPosition);
         long skipped = 0;
         do {
             long len = mInputStream.skip(toSkip);
@@ -86,9 +75,5 @@ class BufferedMediaStream {
             skipped += len;
         } while (skipped < toSkip);
         mPosition += skipped;
-    }
-
-    long getPosition() {
-        return mPosition;
     }
 }

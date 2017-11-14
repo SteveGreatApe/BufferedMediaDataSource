@@ -111,14 +111,14 @@ class MediaCache {
         if (mMaxBlockIndex >= 0 && blockIndex > mMaxBlockIndex) {
             return null;
         }
-        BufferedMediaStream bufferedStream = mBufferedMediaDataSource.streamForIndex(blockIndex);
-        int currentIndex = blockIndex(bufferedStream.getPosition());
-        int blocksToSkip = blockIndex - currentIndex;
-        if (blocksToSkip > 0) {
-            bufferedStream.skip(blocksToSkip * mBufferSize);
+        BufferedSourceBase bufferedStream = mBufferedMediaDataSource.streamForIndex(blockIndex);
+        long currentPos = bufferedStream.getPosition();
+        long targetPos = blockIndex  * mBufferSize;
+        if (targetPos != currentPos) {
+            bufferedStream.skip(targetPos);
         }
         byte[] cacheBuffer = new byte[mBufferSize];
-        int len = bufferedStream.read(cacheBuffer, mBufferSize);
+        int len = bufferedStream.read(cacheBuffer);
         if (len < mBufferSize) {
             cacheBuffer = Arrays.copyOf(cacheBuffer, len);
             mMaxBlockIndex = blockIndex;
@@ -128,7 +128,7 @@ class MediaCache {
         }
         mReadStats.blockLoaded(blockIndex);
         if (mBufferStore.size() > mMaxUsedBuffers) {
-            int toPurge = mReadStats.selectBlockToPurge(mBufferStore.keySet());
+            int toPurge = mReadStats.selectBlockToPurge(mBufferStore.keySet(), blockIndex);
             mBufferStore.remove(toPurge);
             BmdsLog.d(TAG, "Purged", toPurge);
         }

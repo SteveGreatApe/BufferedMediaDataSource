@@ -31,12 +31,15 @@ import java.util.concurrent.Semaphore;
 @RequiresApi(api = Build.VERSION_CODES.M)
 class LoadRunner implements Runnable {
     private final static String TAG = "LoadRunner";
-    private long ThreadExitTimeout = 2 * 1000;
+
+    // Due to issues with JCIF's not handling multi-threaded access we ensure only one thread is ever
+    // active at a time.
+    // TODO: Make this configurable to allow other implementations to take advantage of multi-threading
+    private static Thread mThread;
 
     private Semaphore mLoadSemaphore;
     private final List<LoadItem> mLoadQueue;
     private boolean mStopped;
-    private Thread mThread;
     private final MediaCache mMediaCache;
 
     class LoadItem {
@@ -70,6 +73,22 @@ class LoadRunner implements Runnable {
         mLoadSemaphore = new Semaphore(0);
         mLoadQueue = Collections.synchronizedList(new LinkedList<LoadItem>());
         mMediaCache = mediaCache;
+        Thread oldThread = mThread;
+        if (oldThread != null) {
+            BmdsLog.d(TAG, "Old thread still exists, wait for it to exit: " + oldThread);
+            boolean accessGranted = false;
+            while (!accessGranted) {
+                try {
+                    oldThread.join(0);
+                    accessGranted = true;
+                    BmdsLog.d(TAG, "Thread.join() complete");
+                } catch (InterruptedException e) {
+                    BmdsLog.w(TAG, "Thread.join() interrupted: " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+        }
+        BmdsLog.d(TAG, "Creating new LoadRunner thread");
         mThread = new Thread(this);
         mThread.start();
     }
@@ -127,18 +146,23 @@ class LoadRunner implements Runnable {
 
     void stop() {
         BmdsLog.d(TAG, "stop() IN");
+        mStopped = true;
         // We need to synchronise here to avoid stop running and freeing resources while
         // the load thread is busy running a load.
+        Thread closingThread = mThread;
         synchronized (this) {
-            mStopped = true;
             mLoadSemaphore.release();
         }
         try {
-            mThread.join(ThreadExitTimeout);
+            closingThread.join(0);
+            if (closingThread.isAlive()) {
+                BmdsLog.w(TAG, "Timed out, exiting without waiting for thread to stop");
+            } else if (closingThread == mThread) {
+                mThread = null;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        mThread = null;
         BmdsLog.d(TAG, "stop() OUT");
     }
 

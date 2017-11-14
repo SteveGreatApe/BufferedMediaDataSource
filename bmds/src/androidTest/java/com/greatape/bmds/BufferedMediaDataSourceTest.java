@@ -18,9 +18,13 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import com.greatape.bmds.dummysource.DummyDataInputSource;
+import com.greatape.bmds.dummysource.DummyStreamSource;
+
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -50,14 +54,21 @@ public class BufferedMediaDataSourceTest {
 
     @Before
     public void setUp() {
-        BmdsLog.enableDebug(true);
-        BmdsLog.enablePerformance(true);
+//        BmdsLog.enableDebug(true);
+//        BmdsLog.enablePerformance(true);
     }
 
     @Test
-    public void testSmbDataSource() throws Exception {
+    public void testSmbDataStream() throws Exception {
         for(long streamLen : sTestLengths1) {
-            doTest(streamLen);
+            doTest(streamLen, false);
+        }
+    }
+
+    @Test
+    public void testSmbDataInput() throws Exception {
+        for(long streamLen : sTestLengths1) {
+            doTest(streamLen, true);
         }
     }
 
@@ -69,32 +80,33 @@ public class BufferedMediaDataSourceTest {
         mSkipDelay = new DummyStreamSource.Delay(2, 5);
         for(int numThreads = 4; numThreads < MaxThreads; numThreads *= 2) {
             for(long streamLen : sTestLengths2) {
-                doMultiThreadTest(streamLen, numThreads);
+                doMultiThreadTest(streamLen, numThreads, false);
+                doMultiThreadTest(streamLen, numThreads, true);
             }
         }
     }
 
-    private void doTest(long streamLen) throws IOException {
+    private void doTest(long streamLen, boolean useDataInput) throws IOException {
         for(int bufLen = Math.max(1, (int)(streamLen / 100)); bufLen <= streamLen; bufLen = bufLen * 2 + 1) {
-            doTestSingleThread(TestMode.Sequential, streamLen, bufLen);
-            doTestSingleThread(TestMode.Random, streamLen, bufLen);
+            doTestSingleThread(TestMode.Sequential, streamLen, bufLen, useDataInput);
+            doTestSingleThread(TestMode.Random, streamLen, bufLen, useDataInput);
         }
     }
 
-    private void doTestSingleThread(TestMode testMode, long streamLen, int bufLen) throws IOException {
-        TestThreadInstance tti = new TestThreadInstance(testMode, streamLen, bufLen);
+    private void doTestSingleThread(TestMode testMode, long streamLen, int bufLen, boolean useDataInput) throws IOException {
+        TestThreadInstance tti = new TestThreadInstance(testMode, streamLen, bufLen, useDataInput);
         tti.startThread("Single");
         tti.waitToComplete();
     }
 
-    private void doMultiThreadTest(long streamLen, int numThreads) throws IOException {
+    private void doMultiThreadTest(long streamLen, int numThreads, boolean useDataInput) throws IOException {
         for (int bufLen = Math.max(10, (int) (streamLen / 100)); bufLen <= streamLen; bufLen = bufLen * 3 + 1) {
             Log.d(TAG, "doMultiThreadTest: streamLen=" + streamLen + " numThreads=" + numThreads + " bufLen=" + bufLen);
             DummyStreamSource.resetStats();
             TestThreadInstance[] ttis = new TestThreadInstance[numThreads];
             for(int threadCount = 0; threadCount < numThreads; threadCount++) {
                 TestMode testMode = (threadCount & 1) == 0 ? TestMode.Sequential : TestMode.Random;
-                ttis[threadCount] = new TestThreadInstance(testMode, streamLen, bufLen);
+                ttis[threadCount] = new TestThreadInstance(testMode, streamLen, bufLen, useDataInput);
                 ttis[threadCount].startThread("Thread:" + threadCount);
             }
             for(int threadCount = 0; threadCount < numThreads; threadCount++) {
@@ -108,22 +120,53 @@ public class BufferedMediaDataSourceTest {
         }
     }
 
-    private BufferedMediaDataSource createDataSource(final long streamLen) throws IOException {
-        return new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
-            @Override
-            public InputStream openStream() throws IOException {
-                DummyStreamSource dummyStreamSource = new DummyStreamSource(streamLen);
-                dummyStreamSource.setEmulatedCallDelay(mPerCallDelay);
-                dummyStreamSource.setEmulatedLoadDelay(mLoadDelay);
-                dummyStreamSource.setEmulatedSkipDelay(mSkipDelay);
-                return dummyStreamSource;
-            }
+    private BufferedMediaDataSource createDataSource(final long streamLen, boolean useDataInput) throws IOException {
+        BufferedMediaDataSource bmds;
+        if (useDataInput) {
+            bmds = new BufferedMediaDataSource(new BufferedMediaDataSource.DataInputCreator() {
+                @Override
+                public DataInput openDataInput() throws IOException {
+                    DummyDataInputSource dummyDataInputSource = new DummyDataInputSource(streamLen);
+                    setEmulatedDelays(dummyDataInputSource);
+                    return dummyDataInputSource;
+                }
 
-            @Override
-            public long length() throws IOException {
-                return streamLen;
-            }
-        });
+                @Override
+                public void closeDataInput(DataInput dataInput) throws IOException {
+                }
+
+                @Override
+                public void seek(DataInput dataInput, long seekPos) throws IOException {
+                    ((DummyDataInputSource)dataInput).seek(seekPos);
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return streamLen;
+                }
+            });
+        } else {
+            bmds = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
+                @Override
+                public InputStream openStream() throws IOException {
+                    DummyStreamSource dummyStreamSource = new DummyStreamSource(streamLen);
+                    setEmulatedDelays(dummyStreamSource);
+                    return dummyStreamSource;
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return streamLen;
+                }
+            });
+        }
+        return bmds;
+    }
+
+    private void setEmulatedDelays(DummyStreamSource dummyStreamSource) {
+        dummyStreamSource.setEmulatedCallDelay(mPerCallDelay);
+        dummyStreamSource.setEmulatedLoadDelay(mLoadDelay);
+        dummyStreamSource.setEmulatedSkipDelay(mSkipDelay);
     }
 
     private class TestThreadInstance implements Runnable {
@@ -132,11 +175,13 @@ public class BufferedMediaDataSourceTest {
         private int mBufLen;
         private Semaphore mSemaphore;
         private Thread mThread;
+        private boolean mUseDataInput;
 
-        TestThreadInstance(TestMode mode, long streamLen, int bufLen) {
+        TestThreadInstance(TestMode mode, long streamLen, int bufLen, boolean useDataInput) {
             mMode = mode;
             mStreamLen = streamLen;
             mBufLen = bufLen;
+            mUseDataInput = useDataInput;
             mSemaphore = new Semaphore(0);
         }
 
@@ -158,11 +203,11 @@ public class BufferedMediaDataSourceTest {
         public void run() {
             try {
                 switch(mMode) {
-                case Sequential:
-                        sequential();
+                    case Sequential:
+                        sequential(mUseDataInput);
                         break;
                     case Random:
-                        random();
+                        random(mUseDataInput);
                         break;
                 }
             } catch (IOException e) {
@@ -172,9 +217,9 @@ public class BufferedMediaDataSourceTest {
             Log.d(TAG, "Test Thread Complete");
         }
 
-        private void sequential() throws IOException {
-            Log.d(TAG, "Sequential: streamLen=" + mStreamLen + " bufLen=" + mBufLen);
-            BufferedMediaDataSource dataSource = createDataSource(mStreamLen);
+        private void sequential(boolean useDataInput) throws IOException {
+            Log.d(TAG, "Sequential: streamLen=" + mStreamLen + " bufLen=" + mBufLen + " dataInput=" + useDataInput);
+            BufferedMediaDataSource dataSource = createDataSource(mStreamLen, useDataInput);
             DummyStreamSource expectedValues = new DummyStreamSource(mStreamLen);
             byte[] buffer = new byte[mBufLen];
             for(int index = 0; index < mStreamLen; index += mBufLen) {
@@ -189,11 +234,11 @@ public class BufferedMediaDataSourceTest {
             dataSource.close();
         }
 
-        private void random() throws IOException {
-            Log.d(TAG, "Random: streamLen=" + mStreamLen + " bufLen=" + mBufLen);
+        private void random(boolean useDataInput) throws IOException {
+            Log.d(TAG, "Random: streamLen=" + mStreamLen + " bufLen=" + mBufLen + " dataInput=" + useDataInput);
             final int NumRandomReads = 20;
-            BufferedMediaDataSource dataSource = createDataSource(mStreamLen);
-            Random random = new Random();
+            BufferedMediaDataSource dataSource = createDataSource(mStreamLen, useDataInput);
+            Random random = new Random(0);
             for(int iteration = 0; iteration < NumRandomReads; iteration++) {
                 int readLen = 1 + (mBufLen > 1 ? random.nextInt(mBufLen - 1) : 0);
                 int index = mStreamLen > 1 ? random.nextInt((int)(mStreamLen - 1)) : 0;

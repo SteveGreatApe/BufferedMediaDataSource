@@ -42,11 +42,14 @@ public class ReadStats {
         mLastUsedTimes.put(blockIndex, System.currentTimeMillis());
     }
 
-    int selectBlockToPurge(Set<Integer> integers) {
+    int selectBlockToPurge(Set<Integer> integers, int currentLoad) {
         long maxScore = 0;
         int blockToPurge = -1;
         long now = System.currentTimeMillis();
         for(int blockIndex : integers) {
+            if (blockIndex == currentLoad) {
+                continue;
+            }
             Long lastUsed = mLastUsedTimes.get(blockIndex);
             if (lastUsed == null) {
                 lastUsed = mLastLoadTimes.get(blockIndex);

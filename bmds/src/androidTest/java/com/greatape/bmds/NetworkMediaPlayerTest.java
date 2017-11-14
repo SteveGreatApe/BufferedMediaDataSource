@@ -21,13 +21,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
-import java.util.concurrent.Semaphore;
 
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
+import jcifs.smb.SmbRandomAccessFile;
 
 import static junit.framework.Assert.fail;
 
@@ -45,14 +46,14 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
 
     @Test
     public void testNetworkPlay() throws Exception {
-        BmdsLog.enableDebug(true);
         initSmbConfig();
         SmbFile[] smbFiles = NetworkDirTask.syncFetch("", NETWORK_PATH, "", "");
         if (smbFiles != null) {
             for(SmbFile smbFile : smbFiles) {
                 String mimeType = URLConnection.guessContentTypeFromName(smbFile.getName());
                 if (mimeType != null && mimeType.startsWith(MIME_VIDEO)) {
-                    doSmbFileTest(smbFile);
+                    doSmbFileTest(smbFile, false);
+                    doSmbFileTest(smbFile, true);
                 }
             }
         } else {
@@ -69,20 +70,50 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
 //        jcifs.Config.setProperty("jcifs.smb.client.dfs.disabled", "true");
     }
 
-    private void doSmbFileTest(final SmbFile smbFile) throws IOException {
+    private void doSmbFileTest(final SmbFile smbFile, boolean useDataInput) throws IOException {
         logTestingTitle(smbFile.getCanonicalPath());
-        BufferedMediaDataSource bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
+        BufferedMediaDataSource bufferedMediaDataSource;
+        if (useDataInput) {
+            bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.DataInputCreator() {
+                @Override
+                public DataInput openDataInput() throws IOException {
+                    return new SmbRandomAccessFile(smbFile, "r");
+                }
 
-            @Override
-            public InputStream openStream() throws IOException {
-                return new SmbFileInputStream(smbFile);
-            }
+                @Override
+                public void closeDataInput(DataInput dataInput) throws IOException {
+                    ((SmbRandomAccessFile)dataInput).close();
+                }
 
-            @Override
-            public long length() throws IOException {
-                return smbFile.length();
-            }
-        });
+                @Override
+                public void readData(DataInput dataInput, byte[] buffer, int readLen) throws IOException {
+                    ((SmbRandomAccessFile)dataInput).read(buffer, 0, readLen);
+                }
+
+                @Override
+                public void seek(DataInput dataInput, long seekPos) throws IOException {
+                    ((SmbRandomAccessFile)dataInput).seek(seekPos);
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return smbFile.length();
+                }
+            });
+        } else {
+            bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
+
+                @Override
+                public InputStream openStream() throws IOException {
+                    return new SmbFileInputStream(smbFile);
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return smbFile.length();
+                }
+            });
+        }
         try {
             doTest(bufferedMediaDataSource);
         } catch (InterruptedException e) {

@@ -60,6 +60,13 @@ public class BmdsLog {
         }
     }
 
+    static void w(String tag, String message) {
+        Log.w(TAG + tag, message);
+    }
+
+    static void w(String tag, String message, int blockIndex) {
+    }
+
     static void e(String tag, String message) {
         Log.e(TAG + tag, message);
     }

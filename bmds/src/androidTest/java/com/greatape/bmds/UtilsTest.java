@@ -14,16 +14,13 @@
  */
 package com.greatape.bmds;
 
-import android.text.format.Time;
 import android.util.Log;
 
-import com.greatape.utils.Utils;
+import com.greatape.bmds.utils.Utils;
 
 import org.junit.Test;
 
 import java.text.DecimalFormat;
-import java.util.GregorianCalendar;
-import java.util.Locale;
 import java.util.Random;
 
 import static junit.framework.Assert.assertEquals;

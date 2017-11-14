@@ -5,6 +5,10 @@ BufferedMediaDataSource
   This was initially created to use with SmbFile to play Media from a network drive, but will work
  for any InputStream, you just need a provide an implementation of BufferedMediaDataSource.StreamCreator
  that creates the stream and provides the length of the stream.
+ 
+  In Version 0.2 support for DataInput has also been added to allow this to work random access
+ sources such as RandomAccessFile SmbRandomAccessFile. This should theoretically be a bit more
+ efficient than streamed sources, but actual results may vary depending on the underlying source.
 
   Currently functionality is reasonably well tested with the provided unit tests, but more work
  needs to be done on performance analysis to find good numbers for buffer sizes and cache & read

@@ -12,12 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.greatape.bmds;
+package com.greatape.bmds.dummysource;
 
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.greatape.utils.Utils;
+import com.greatape.bmds.utils.Utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,14 +26,14 @@ import java.util.Random;
 /**
  * @author Steve Townsend
  */
-class DummyStreamSource extends InputStream {
+public class DummyStreamSource extends InputStream {
     private static final String TAG = "DummyStreamSource";
 
     private static final long Megabyte = 1024 * 1024;
 
-    private static Random sRandom = new Random();
-    private long mLength;
-    private long mIndex;
+    private static Random sRandom = new Random(0);
+    long mLength;
+    long mIndex;
     private Delay mPerMegabyte;
     private Delay mPerCall;
     private Delay mSkipPerMegabyte;
@@ -45,19 +45,19 @@ class DummyStreamSource extends InputStream {
     private static long mTotalCalls;
     private static long mTotalPerCallDelay;
 
-    DummyStreamSource(long length) {
+    public DummyStreamSource(long length) {
         mLength = length;
     }
 
-    void setEmulatedCallDelay(Delay perCallDelay) {
+    public void setEmulatedCallDelay(Delay perCallDelay) {
         mPerCall = perCallDelay;
     }
 
-    void setEmulatedLoadDelay(Delay perMbDelay) {
+    public void setEmulatedLoadDelay(Delay perMbDelay) {
         mPerMegabyte = perMbDelay;
     }
 
-    void setEmulatedSkipDelay(Delay perSkipDelay) {
+    public void setEmulatedSkipDelay(Delay perSkipDelay) {
         mSkipPerMegabyte = perSkipDelay;
     }
 
@@ -80,14 +80,11 @@ class DummyStreamSource extends InputStream {
         return actualLen;
     }
 
-    public long skip(long n) throws IOException {
-        long actualSkip = Math.min(n, mLength - mIndex);
-        emulateLoadTime(0, (int)actualSkip);
-        mIndex += actualSkip;
-        return actualSkip;
+    public void seek(long seekPos) throws IOException {
+        mIndex = Math.min(seekPos, mLength);
     }
 
-    private void emulateLoadTime(int loadLen, int skipLen) {
+    void emulateLoadTime(int loadLen, int skipLen) {
         long loadTime = 0;
         mTotalCalls++;
         if (mPerCall != null) {
@@ -115,15 +112,15 @@ class DummyStreamSource extends InputStream {
         }
     }
 
-    private static int expectedValue(long index) {
+    static int expectedValue(long index) {
         return ((int)index & 0xFF) ^ (((int)index >> 8) & 0xFF);
     }
 
-    static class Delay {
+    public static class Delay {
         long min;
         int maxExtra;
 
-        Delay(long min, long max) {
+        public Delay(long min, long max) {
             this.min = min;
             this.maxExtra = (int)(max - min);
         }
@@ -137,12 +134,12 @@ class DummyStreamSource extends InputStream {
         }
     }
 
-    static void logTotalStats() {
+    public static void logTotalStats() {
         Log.d(TAG, "Totals: Calls: " + mTotalCalls + " Loaded: " + Utils.formatFileSize(mTotalLoadBytes) + " Skipped: " + Utils.formatFileSize(mTotalSkipBytes));
         Log.d(TAG, "Delays: Call: " + Utils.formatDuration(mTotalPerCallDelay) + " Loading: " + Utils.formatDuration(mTotalLoadDelay) + " Skipping: " + Utils.formatDuration(mTotalSkipDelay));
     }
 
-    static void resetStats() {
+    public static void resetStats() {
         mTotalLoadBytes = 0;
         mTotalLoadDelay= 0;
         mTotalSkipBytes= 0;
