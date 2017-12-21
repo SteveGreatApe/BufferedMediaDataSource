@@ -145,6 +145,11 @@ public class MediaPlayerTest {
                 AssetFileDescriptor fd = assetManager.openFd(fileName);
                 return fd.getLength();
             }
+
+            @Override
+            public String typeName() {
+                return "Asset";
+            }
         });
         doTest(bufferedMediaDataSource);
     }
@@ -173,6 +178,11 @@ public class MediaPlayerTest {
                 public long length() throws IOException {
                     return file.length();
                 }
+
+                @Override
+                public String typeName() {
+                    return "File";
+                }
             });
         } else {
             bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
@@ -184,6 +194,11 @@ public class MediaPlayerTest {
                 @Override
                 public long length() throws IOException {
                     return file.length();
+                }
+
+                @Override
+                public String typeName() {
+                    return "File";
                 }
             });
         }

@@ -31,7 +31,7 @@ class MediaCache {
     private TreeMap<Integer, byte[]> mBufferStore = new TreeMap<>();
     private int mMaxBlockIndex;
     private ArrayList<Integer> mBlockRepeatedCachedAhead;
-    private final LoadRunner mLoadRunner;
+    private final LoadRunnerClient mLoadRunner;
     private final BufferedMediaDataSource mBufferedMediaDataSource;
     private int mBufferSize;
     private int mMaxUsedBuffers;
@@ -43,19 +43,19 @@ class MediaCache {
         mCacheAheadCount = bufferConfig.cacheAheadCount;
         mBufferedMediaDataSource = bufferedMediaDataSource;
         mReadStats = new ReadStats();
-        mLoadRunner = new LoadRunner(this);
+        mLoadRunner = LoadRunner.addNewClient(this, bufferedMediaDataSource.typeName());
         mMaxUsedBuffers = bufferConfig.maxUsedBuffers;
         mBlockRepeatedCachedAhead = new ArrayList<>();
         mMaxBlockIndex = -1;
     }
 
     void close() {
-        mLoadRunner.stop();
+        mLoadRunner.close();
     }
 
     private byte[] getBuffer(int blockIndex) throws IOException {
         byte[] cacheBuffer;
-        LoadRunner.LoadItem loadItem = null;
+        LoadRunnerClient.LoadItem loadItem = null;
         synchronized (this) {
             cacheBuffer = mBufferStore.get(blockIndex);
             if (cacheBuffer == null) {

@@ -14,6 +14,8 @@
  */
 package com.greatape.bmds;
 
+import android.os.Build;
+
 import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +24,8 @@ import java.lang.reflect.Field;
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
 import jcifs.smb.SmbRandomAccessFile;
+
+import static android.support.test.InstrumentationRegistry.getInstrumentation;
 
 /**
  * @author Steve Townsend
@@ -65,6 +69,11 @@ class SmbUtil {
                     public void readData(DataInput dataInput, byte[] buffer, int readLen) throws IOException {
                         ((SmbRandomAccessFile)dataInput).read(buffer, 0, readLen);
                     }
+
+                    @Override
+                    public String typeName() {
+                        return "SmbFile";
+                    }
                 }, bufferConfig);
             } else {
                 bmds = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
@@ -76,6 +85,11 @@ class SmbUtil {
                     @Override
                     public long length() throws IOException {
                         return smbFile.length();
+                    }
+
+                    @Override
+                    public String typeName() {
+                        return "SmbFile";
                     }
                 }, bufferConfig);
             }
@@ -117,5 +131,17 @@ class SmbUtil {
             e.printStackTrace();
         }
         return readSizeFile[0];
+    }
+
+    static void grantPermission(String permission) {
+        // In M+ some permissions needs to show a dialog to grant the permission, run this so
+        // the permission is granted before running these tests.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            StringBuilder stringBuilder = new StringBuilder("pm grant ");
+            stringBuilder.append(getInstrumentation().getTargetContext().getPackageName());
+            stringBuilder.append(" android.permission.");
+            stringBuilder.append(permission);
+            getInstrumentation().getUiAutomation().executeShellCommand(stringBuilder.toString());
+        }
     }
 }

@@ -59,11 +59,22 @@
             android:visibility="gone"
             android:layout_height="wrap_content"
             android:layout_width="match_parent" />
-        <CheckBox
-            android:id="@+id/random_access"
-            android:text="@string/use_smb_random_access"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <CheckBox
+                android:id="@+id/random_access"
+                android:text="@string/use_smb_random_access"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <CheckBox
+                android:id="@+id/repeat"
+                android:text="@string/repeat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
         <LinearLayout
             style="?android:attr/buttonBarStyle"
             android:orientation="horizontal"

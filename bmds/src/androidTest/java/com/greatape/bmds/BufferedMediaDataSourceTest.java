@@ -144,6 +144,11 @@ public class BufferedMediaDataSourceTest {
                 public long length() throws IOException {
                     return streamLen;
                 }
+
+                @Override
+                public String typeName() {
+                    return "Dummy";
+                }
             });
         } else {
             bmds = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
@@ -157,6 +162,11 @@ public class BufferedMediaDataSourceTest {
                 @Override
                 public long length() throws IOException {
                     return streamLen;
+                }
+
+                @Override
+                public String typeName() {
+                    return "Dummy";
                 }
             });
         }

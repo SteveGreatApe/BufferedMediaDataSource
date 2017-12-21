@@ -68,6 +68,11 @@ class SmbUtil {
                     public void readData(DataInput dataInput, byte[] buffer, int readLen) throws IOException {
                         ((SmbRandomAccessFile)dataInput).read(buffer, 0, readLen);
                     }
+
+                    @Override
+                    public String typeName() {
+                        return "SmbFile";
+                    }
                 }, bufferConfig);
             } else {
                 bmds = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
@@ -79,6 +84,11 @@ class SmbUtil {
                     @Override
                     public long length() throws IOException {
                         return smbFile.length();
+                    }
+
+                    @Override
+                    public String typeName() {
+                        return "SmbFile";
                     }
                 }, bufferConfig);
             }

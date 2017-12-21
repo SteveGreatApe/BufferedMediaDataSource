@@ -41,6 +41,9 @@ class BufferedDataSource extends BufferedSourceBase {
         log("Reading from: " + mPosition);
         int readLen = buffer.length;
         long available = (mBufferedMediaDataSource.getSize() - mPosition);
+        if (available < 0) {
+            throw new IOException("Read past end of file by " + available + " byte(s)");
+        }
         boolean removeBufferedStream = false;
         if (available < readLen) {
             readLen = (int)available;

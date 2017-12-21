@@ -38,6 +38,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.greatape.bmds.BmdsLog;
 import com.greatape.bmds.BufferedMediaDataSource;
 
 import java.io.File;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jcifs.smb.SmbFile;
+import jcifs.util.LogStream;
 
 /**
  * @author Steve Townsend
@@ -62,6 +64,7 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
     private static final String USERNAME_PREF = "u";
     private static final String PASSWORD_PREF = "p";
     private static final String RANDOM_ACCESS_PREF = "ra";
+    private static final String REPEAT_PREF = "rp";
     private static final String STORE_LOGIN_PREF = "ra";
     private static final String LAST_FILE_PREF = "lf";
 
@@ -81,8 +84,9 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo);
         mPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-//        jcifs.Config.setProperty("jcifs.smb.client.dfs.disabled", "true");
+//        BmdsLog.enableDebug(true);
 //        LogStream.setLevel(5);
+//        jcifs.Config.setProperty("jcifs.smb.client.dfs.disabled", "true");
         initSurface();
         initUI();
     }
@@ -106,14 +110,21 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
 
             CheckBox randomAccess = findViewById(R.id.random_access);
             randomAccess.setChecked(mPreferences.getBoolean(RANDOM_ACCESS_PREF, false));
-            randomAccess.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            randomAccess.setOnCheckedChangeListener((buttonView, isChecked) -> mPreferences.edit().
+                putBoolean(RANDOM_ACCESS_PREF, isChecked).
+                apply());
+
+            CheckBox repeat = findViewById(R.id.repeat);
+            repeat.setChecked(mPreferences.getBoolean(REPEAT_PREF, false));
+            repeat.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     mPreferences.edit().
-                        putBoolean(RANDOM_ACCESS_PREF, isChecked).
-                        apply();
+                            putBoolean(REPEAT_PREF, isChecked).
+                            apply();
                 }
             });
+
             CheckBox storeLogin = findViewById(R.id.store_login);
             storeLogin.setChecked(mPreferences.getBoolean(STORE_LOGIN_PREF, false));
             storeLogin.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -281,10 +292,15 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
 
     public void onStopVideo(View view) {
         if (mMediaPlayer != null) {
-            findViewById(R.id.stop_video).setEnabled(false);
             mMediaPlayer.stop();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
+            if (view == null &&
+                    mPreferences.getBoolean(REPEAT_PREF, false)) {
+                mMediaPlayer.start();
+            } else {
+                findViewById(R.id.stop_video).setEnabled(false);
+                mMediaPlayer.release();
+                mMediaPlayer = null;
+            }
 // Use this for heap analysis
 //            System.gc();
 //            HeapDump();
@@ -300,7 +316,12 @@ public class DemoActivity extends Activity implements NetworkDirTask.Listener, S
     }
 
     private void playNetworkVideo(SmbFile smbFile, boolean useRandomAccess) throws IOException {
-        BufferedMediaDataSource bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useRandomAccess);
+        BufferedMediaDataSource bmds;
+        if (useRandomAccess) {
+            bmds = new SmbBufferedMediaDataSource(smbFile);
+        } else {
+            bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useRandomAccess);
+        }
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setDataSource(bmds);
         mMediaPlayer.setDisplay(mSurfaceHolder);

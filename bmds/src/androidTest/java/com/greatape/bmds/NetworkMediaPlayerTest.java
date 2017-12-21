@@ -16,6 +16,7 @@
 package com.greatape.bmds;
 
 import android.support.test.runner.AndroidJUnit4;
+import android.util.Log;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -52,8 +53,12 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
             for(SmbFile smbFile : smbFiles) {
                 String mimeType = URLConnection.guessContentTypeFromName(smbFile.getName());
                 if (mimeType != null && mimeType.startsWith(MIME_VIDEO)) {
-                    doSmbFileTest(smbFile, false);
+                    if (smbFile.getName().contains("A720")) {
+                        Log.d(TAG, "Skipping test for: " + smbFile);
+                        continue;
+                    }
                     doSmbFileTest(smbFile, true);
+                    doSmbFileTest(smbFile, false);
                 }
             }
         } else {
@@ -99,6 +104,11 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
                 public long length() throws IOException {
                     return smbFile.length();
                 }
+
+                @Override
+                public String typeName() {
+                    return "SmbFile";
+                }
             });
         } else {
             bufferedMediaDataSource = new BufferedMediaDataSource(new BufferedMediaDataSource.StreamCreator() {
@@ -111,6 +121,11 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
                 @Override
                 public long length() throws IOException {
                     return smbFile.length();
+                }
+
+                @Override
+                public String typeName() {
+                    return "SmbFile";
                 }
             });
         }

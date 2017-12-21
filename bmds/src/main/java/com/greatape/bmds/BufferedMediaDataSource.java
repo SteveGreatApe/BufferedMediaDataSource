@@ -52,6 +52,8 @@ public class BufferedMediaDataSource extends MediaDataSource {
     public interface StreamCreator {
         InputStream openStream() throws IOException;
         long length() throws IOException;
+        // All input types with matching names will use the same queue, allowing only one active load at a time.
+        String typeName();
     }
 
     // Use this to create an DataInput derived implementation such as RandomAccessFile or SmbRandomAccessFile
@@ -70,16 +72,14 @@ public class BufferedMediaDataSource extends MediaDataSource {
         default void readData(DataInput dataInput, byte[] buffer, int readLen) throws IOException {dataInput.readFully(buffer, 0, readLen);}
         void seek(DataInput dataInput, long seekPos) throws IOException;
         long length() throws IOException;
-    }
-
-    private BufferedMediaDataSource(BufferConfig bufferConfig) throws IOException {
-        mMediaCache = new MediaCache(this, bufferConfig);
+        // All input types with matching names will use the same queue, allowing only one active load at a time.
+        String typeName();
     }
 
     public BufferedMediaDataSource(StreamCreator streamCreator, BufferConfig bufferConfig) throws IOException {
-        this(bufferConfig);
         mLinkedList = new LinkedList<>();
         mStreamCreator = streamCreator;
+        mMediaCache = new MediaCache(this, bufferConfig);
     }
 
     public BufferedMediaDataSource(StreamCreator streamCreator) throws IOException {
@@ -87,8 +87,8 @@ public class BufferedMediaDataSource extends MediaDataSource {
     }
 
     public BufferedMediaDataSource(DataInputCreator dataInputCreator, BufferConfig bufferConfig) throws IOException {
-        this(bufferConfig);
         mDataInputCreator = dataInputCreator;
+        mMediaCache = new MediaCache(this, bufferConfig);
     }
 
     public BufferedMediaDataSource(DataInputCreator dataInputCreator) throws IOException {
@@ -111,10 +111,10 @@ public class BufferedMediaDataSource extends MediaDataSource {
     @Override
     public long getSize() throws IOException {
         if (mSize == null) {
-            if (mStreamCreator != null) {
-                mSize = mStreamCreator.length();
-            } else {
+            if (mDataInputCreator != null) {
                 mSize = mDataInputCreator.length();
+            } else {
+                mSize = mStreamCreator.length();
             }
         }
         return mSize;
@@ -135,6 +135,10 @@ public class BufferedMediaDataSource extends MediaDataSource {
 
     void closeDataInput(DataInput dataInput) throws IOException {
         mDataInputCreator.closeDataInput(dataInput);
+    }
+
+    String typeName() {
+        return mDataInputCreator != null ? mDataInputCreator.typeName() : mStreamCreator.typeName();
     }
 
     BufferedSourceBase streamForIndex(int bufferIndex) throws IOException {
