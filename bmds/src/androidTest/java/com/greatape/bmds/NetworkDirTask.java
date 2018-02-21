@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.concurrent.Semaphore;
 
+import jcifs.CIFSContext;
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
@@ -30,14 +31,15 @@ import jcifs.smb.SmbFile;
  * @author Steve Townsend
  */
 public class NetworkDirTask extends AsyncTask<String, Void, SmbFile[]> {
+    private CIFSContext mCifsContext;
     private Listener mListener;
     private IOException mException;
 
-    static SmbFile[] syncFetch(String workgroup, String networkPath, String username, String password) throws Exception {
+    static SmbFile[] syncFetch(CIFSContext cifsContext, String workgroup, String networkPath, String username, String password) throws Exception {
         final SmbFile[][] smbFiles = {null};
         Semaphore semaphore = new Semaphore(0);
         final Exception[] smbException = {null};
-        NetworkDirTask networkDirTask = new NetworkDirTask((files, exception) -> {
+        NetworkDirTask networkDirTask = new NetworkDirTask(cifsContext, (files, exception) -> {
             semaphore.release();
             smbFiles[0] = files;
             smbException[0] = exception;
@@ -54,24 +56,26 @@ public class NetworkDirTask extends AsyncTask<String, Void, SmbFile[]> {
         void fileList(SmbFile[] files, IOException exception);
     }
 
-    NetworkDirTask(Listener listener) {
+    private NetworkDirTask(CIFSContext cifsContext, Listener listener) {
+        mCifsContext = cifsContext;
         mListener = listener;
     }
 
     @Override
     protected SmbFile[] doInBackground(String... params) {
         // Extract parameters and get the video list
-        String workgroup = params[0];
-        String path = params[1];
         String username = params[2];
-        String password = params[3];
-        NtlmPasswordAuthentication auth = null;
+        CIFSContext cifsContext = mCifsContext;
         if (!TextUtils.isEmpty(username)) {
-            auth = new NtlmPasswordAuthentication(workgroup, username, password);
+            String workgroup = params[0];
+            String password = params[3];
+            NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication(cifsContext, workgroup, username, password);
+            cifsContext = cifsContext.withCredentials(auth);
         }
         SmbFile[] files = null;
         try {
-            SmbFile smbFolder = new SmbFile(path, auth);
+            String path = params[1];
+            SmbFile smbFolder = new SmbFile(path, cifsContext);
             files = smbFolder.listFiles();
         } catch (MalformedURLException | SmbException e) {
             mException = e;

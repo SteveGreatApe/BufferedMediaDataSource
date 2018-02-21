@@ -12,34 +12,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.greatape.bmds;
 
-import android.os.Build;
+package com.greatape.bmdsapp.smb;
 
-import java.io.DataInput;
+import com.greatape.bmds.BufferedMediaDataSource;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
+import java.net.MalformedURLException;
 import java.util.Properties;
 
 import jcifs.CIFSContext;
 import jcifs.CIFSException;
 import jcifs.config.PropertyConfiguration;
 import jcifs.context.BaseContext;
+import jcifs.smb.SmbAuthException;
+import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
-import jcifs.smb.SmbRandomAccessFile;
-
-import static android.support.test.InstrumentationRegistry.getInstrumentation;
 
 /**
  * @author Steve Townsend
  */
-class SmbUtil {
+public class SmbUtil {
+    private static CIFSContext sCifsContext1 = createContext(false);
+    private static CIFSContext sCifsContext2 = createContext(true);
 
-    static BufferedMediaDataSource createBufferedMediaDataSource(SmbFile smbFile, boolean useRandomAccess, int bufferSize) {
-        BufferedMediaDataSource bmds = null;
+    public static BufferedMediaDataSource createBufferedMediaDataSource(SmbFile smbFile, boolean useRandomAccess) {
         BufferedMediaDataSource.BufferConfig bufferConfig = new BufferedMediaDataSource.BufferConfig();
+        int bufferSize = getReadBufferSize(smbFile);
         if (bufferSize > 0) {
             int totalBufferSize = bufferConfig.bufferSize * bufferConfig.maxUsedBuffers;
             int totalCacheAheadSize = bufferConfig.bufferSize * bufferConfig.cacheAheadCount;
@@ -47,6 +48,7 @@ class SmbUtil {
             bufferConfig.maxUsedBuffers = totalBufferSize / bufferConfig.bufferSize;
             bufferConfig.cacheAheadCount = totalCacheAheadSize / bufferConfig.bufferSize;
         }
+        BufferedMediaDataSource bmds = null;
         try {
             if (useRandomAccess) {
                 bmds = new SmbBufferedMediaDataSource(smbFile, bufferConfig);
@@ -74,55 +76,19 @@ class SmbUtil {
         return bmds;
     }
 
-    static int getIdealReadBufferSize(SmbFile smbFile, boolean useRandomAccess) {
-        int[] readSizeFile = {0};
-        // Network access needs to be on a different thread or it will throw an Exception
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (useRandomAccess) {
-                        SmbRandomAccessFile smbRandomAccessFile = new SmbRandomAccessFile(smbFile, "r");
-                        Field field = SmbRandomAccessFile.class.getDeclaredField("readSize");
-                        field.setAccessible(true);
-                        readSizeFile[0] = (int)field.get(smbRandomAccessFile);
-                        smbRandomAccessFile.close();
-                    } else {
-                        SmbFileInputStream smbFileInputStream = new SmbFileInputStream(smbFile);
-                        Field field = SmbFileInputStream.class.getDeclaredField("readSizeFile");
-                        field.setAccessible(true);
-                        readSizeFile[0] = (int)field.get(smbFileInputStream);
-                        smbFileInputStream.close();
-                    }
-                } catch (IllegalAccessException | NoSuchFieldException | IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return readSizeFile[0];
+    private static int getReadBufferSize(SmbFile smbFile) {
+        return smbFile.getContext().getConfig().getReceiveBufferSize();
     }
 
-    static void grantPermission(String permission) {
-        // In M+ some permissions needs to show a dialog to grant the permission, run this so
-        // the permission is granted before running these tests.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            StringBuilder stringBuilder = new StringBuilder("pm grant ");
-            stringBuilder.append(getInstrumentation().getTargetContext().getPackageName());
-            stringBuilder.append(" android.permission.");
-            stringBuilder.append(permission);
-            getInstrumentation().getUiAutomation().executeShellCommand(stringBuilder.toString());
-        }
+    static CIFSContext baseContext(boolean smb2) {
+        return smb2 ? sCifsContext2 : sCifsContext1;
     }
 
-    public static CIFSContext baseContext(boolean smb2) {
+    private static CIFSContext createContext(boolean smb2) {
         Properties prop = new Properties();
         prop.putAll(System.getProperties());
+        // Increased buffer size gives improved performance
+        prop.setProperty("jcifs.smb.client.rcv_buf_size", "262144");
         prop.setProperty("jcifs.smb.client.enableSMB2", String.valueOf(smb2));
         PropertyConfiguration propertyConfiguration = null;
         try {
@@ -131,5 +97,33 @@ class SmbUtil {
             e.printStackTrace();
         }
         return new BaseContext(propertyConfiguration);
+    }
+
+    static boolean isRootOrWorkgroup(String path) {
+        boolean isRootOrWorkgroup = false;
+        try {
+            SmbFile smbFile = new SmbFile(path, baseContext(false));
+            int type = getType(smbFile);
+            // Note: TYPE_WORKGROUP is also returned for the toor
+            if (type == SmbFile.TYPE_WORKGROUP) {
+                isRootOrWorkgroup = true;
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        return isRootOrWorkgroup;
+    }
+
+    static int getType(SmbFile smbFile) {
+        // TODO: Workaround for issue where jcifs-ng throws SmbAuthException when getting type of password protected Share
+        int type;
+        try {
+            type = smbFile.getType();
+        } catch(SmbAuthException authE) {
+            type = SmbFile.TYPE_SHARE;
+        } catch (SmbException e) {
+            type = SmbFile.TYPE_FILESYSTEM;
+        }
+        return(type);
     }
 }

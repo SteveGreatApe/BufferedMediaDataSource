@@ -57,7 +57,7 @@ public class NetworkReadTest {
 
     @Test
     public void testNetworkPlay() throws Exception {
-        SmbFile[] smbFiles = NetworkDirTask.syncFetch("", NETWORK_PATH, "", "");
+        SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true),"", NETWORK_PATH, "", "");
         if (smbFiles != null) {
             List<SmbTestInstance> instances = new ArrayList<>();
             for (SmbFile smbFile : smbFiles) {

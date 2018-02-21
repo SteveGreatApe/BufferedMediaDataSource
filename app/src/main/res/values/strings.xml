@@ -3,13 +3,14 @@
     <string name="play_video">Play Video</string>
     <string name="password">Password</string>
     <string name="username">Username</string>
-    <string name="get_video_list">Get Video List</string>
     <string name="stop_video">Stop</string>
-    <string name="get_video_text">Press GET VIDEO LIST to retrieve video list</string>
     <string name="default_no_file_error">No files found</string>
     <string name="title_format">Play videos from: %s</string>
-    <string name="store_login">Store Login</string>
     <string name="use_smb_random_access">Use SMB Random access</string>
     <string name="repeat">Repeat</string>
     <string name="fetching_list">Fetching video list</string>
+    <string name="level_up">Up</string>
+    <string name="open_folder">Open Folder</string>
+    <string name="requesting_credentials">Requesting user credentials</string>
+    <string name="cancelled_credentials_request">Cancelled credentials request</string>
 </resources>

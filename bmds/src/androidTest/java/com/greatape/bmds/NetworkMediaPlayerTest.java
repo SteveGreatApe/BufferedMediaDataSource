@@ -38,7 +38,8 @@ import static junit.framework.Assert.fail;
  */
 @RunWith(AndroidJUnit4.class)
 public class NetworkMediaPlayerTest extends MediaPlayerTest {
-    private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/Videos/";
+    //private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/Videos/";
+    private static final String NETWORK_PATH = "smb://SILENTAPE/Public//";
 
     @Before
     public void grantInternetPermission() {
@@ -48,7 +49,7 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
     @Test
     public void testNetworkPlay() throws Exception {
         initSmbConfig();
-        SmbFile[] smbFiles = NetworkDirTask.syncFetch("", NETWORK_PATH, "", "");
+        SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true),"", NETWORK_PATH, "", "");
         if (smbFiles != null) {
             for(SmbFile smbFile : smbFiles) {
                 String mimeType = URLConnection.guessContentTypeFromName(smbFile.getName());
@@ -67,12 +68,8 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
     }
 
     private void initSmbConfig() {
+//        BmdsLog.enableDebug(true);
 //        LogStream.setLevel(3);
-        // TODO: How can we can make a generic setup that works well on all networks? It's not at
-        // all good that we need this sort of tweak to make JCIFS perform properly.
-        // Note: With large buffer fix we can get away without this, but it is still potentially
-        // an unnecessary performance hit.
-//        jcifs.Config.setProperty("jcifs.smb.client.dfs.disabled", "true");
     }
 
     private void doSmbFileTest(final SmbFile smbFile, boolean useDataInput) throws IOException {

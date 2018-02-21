@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "27.0.1"
+    buildToolsVersion "27.0.3"
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 26
@@ -26,8 +26,11 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:26.1.0'
     testImplementation 'junit:junit:4.12'
 
-    androidTestImplementation files('libs/jcifs-1.3.18-LargeReadWritePatch.jar')
-    androidTestImplementation 'com.android.support:support-annotations:27.0.0'
+    androidTestImplementation files('libs/jcifs-ng-2.1.0-SNAPSHOT.jar')
+    androidTestImplementation 'org.slf4j:slf4j-api:1.7.25'
+    androidTestImplementation "org.bouncycastle:bcprov-jdk15on:1.56"
+
+    androidTestImplementation 'com.android.support:support-annotations:27.0.2'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 }

@@ -85,7 +85,7 @@ public class SpeedTest {
                 logName += String.format("%02d", iteration);
             }
             mLogFile = new LogFile(logName, LogFile.Mode.Unique);
-            SmbFile[] smbFiles = NetworkDirTask.syncFetch("", NETWORK_PATH, "", "");
+            SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true), "", NETWORK_PATH, "", "");
             if (smbFiles != null) {
                 for (SmbFile smbFile : smbFiles) {
                     doSmbFileSpeedTest(smbFile, false, true, null);

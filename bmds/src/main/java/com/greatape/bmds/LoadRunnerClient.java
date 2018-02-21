@@ -49,6 +49,24 @@ class LoadRunnerClient {
     }
     public void close() {
         mLoadRunner.remove(this);
+        Semaphore waitForClose = null;
+        synchronized(mLoadQueue) {
+            for (LoadItem loadItem : mLoadQueue) {
+                if (loadItem.isActive) {
+                    loadItem.closeSemaphore = new Semaphore(0);
+                    waitForClose = loadItem.closeSemaphore;
+                }
+            }
+        }
+        if (waitForClose != null) {
+            synchronized (waitForClose) {
+                try {
+                    waitForClose.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     boolean hasRequestForBlock(int blockIndex) {
@@ -113,6 +131,8 @@ class LoadRunnerClient {
         byte[] result;
         IOException exception;
         Semaphore semaphore;
+        boolean isActive;
+        Semaphore closeSemaphore;
 
         LoadItem(int blockIndex, boolean blocking) {
             this.blockIndex = blockIndex;
@@ -136,6 +156,9 @@ class LoadRunnerClient {
             }
             synchronized(mLoadQueue) {
                 mLoadQueue.remove(this);
+                if (closeSemaphore != null) {
+                    closeSemaphore.release();
+                }
             }
         }
 
@@ -150,6 +173,10 @@ class LoadRunnerClient {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        void setActive(boolean active) {
+            isActive = active;
         }
     }
 }

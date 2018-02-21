@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-package com.greatape.bmdsapp;
+package com.greatape.bmdsapp.smb;
 
 import com.greatape.bmds.BufferedMediaDataSource;
 
@@ -28,16 +28,7 @@ import jcifs.smb.SmbRandomAccessFile;
  * @author Steve Townsend
  */
 class SmbBufferedMediaDataSource extends BufferedMediaDataSource {
-    private final static BufferConfig sBufferConfig = new BufferConfig();
-    static {
-        // Set buffer size to the size of the buffered in the Smb large buffer build.
-        // This optimises throughput by minimising the total number of buffers read over network.
-        sBufferConfig.bufferSize = 65465;
-        sBufferConfig.maxUsedBuffers = 64;
-        sBufferConfig.cacheAheadCount = 16;
-    }
-
-    SmbBufferedMediaDataSource(SmbFile smbFile) throws IOException {
+    SmbBufferedMediaDataSource(SmbFile smbFile, BufferConfig bufferConfig) throws IOException {
         super(new DataInputCreator() {
             @Override
             public DataInput openDataInput() throws IOException {
@@ -68,6 +59,6 @@ class SmbBufferedMediaDataSource extends BufferedMediaDataSource {
             public String typeName() {
                 return "SmbFile";
             }
-        }, sBufferConfig);
+        }, bufferConfig);
     }
 }
