@@ -144,4 +144,8 @@ class MediaCache {
     ReadStats getReadStats() {
         return mReadStats;
     }
+
+    int getBufferSize() {
+        return mBufferSize;
+    }
 }

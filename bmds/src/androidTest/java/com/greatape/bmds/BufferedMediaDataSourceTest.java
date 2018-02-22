@@ -40,7 +40,7 @@ import static org.junit.Assert.assertEquals;
 @RequiresApi(api = Build.VERSION_CODES.M)
 public class BufferedMediaDataSourceTest {
     private final static long[] sTestLengths1 = {1, 10, 1000, 10000, 1000000, 10000000};
-    private final static long[] sTestLengths2 = {1234, 123456, 12345678};
+    private final static long[] sTestLengths2 = {1234, 123456, 1234567};
     private static final String TAG = "BufMediaDataSrcTest";
 
     private DummyStreamSource.Delay mPerCallDelay;
@@ -75,9 +75,9 @@ public class BufferedMediaDataSourceTest {
     @Test
     public void testMultipleThreads() throws Exception {
         final int MaxThreads = 16;
-        mPerCallDelay = new DummyStreamSource.Delay(1, 3);
-        mLoadDelay = new DummyStreamSource.Delay(10, 20);
-        mSkipDelay = new DummyStreamSource.Delay(2, 5);
+        mPerCallDelay = new DummyStreamSource.Delay(1, 2);
+        mLoadDelay = new DummyStreamSource.Delay(4, 8);
+        mSkipDelay = new DummyStreamSource.Delay(1, 3);
         for(int numThreads = 4; numThreads < MaxThreads; numThreads *= 2) {
             for(long streamLen : sTestLengths2) {
                 doMultiThreadTest(streamLen, numThreads, false);

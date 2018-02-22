@@ -18,6 +18,9 @@ import android.os.Build;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import com.greatape.bmds.smb.NetworkDirTask;
+import com.greatape.bmds.smb.SmbTestConfig;
+import com.greatape.bmds.smb.SmbUtil;
 import com.greatape.bmds.utils.Utils;
 
 import org.junit.After;
@@ -41,7 +44,6 @@ import static junit.framework.Assert.fail;
  */
 @RunWith(AndroidJUnit4.class)
 public class SpeedTest {
-    private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/SpeedTest/";
     private static final String TAG_SPEED_TEST = "SpeedTest";
 
     private LogFile mLogFile;
@@ -85,29 +87,29 @@ public class SpeedTest {
                 logName += String.format("%02d", iteration);
             }
             mLogFile = new LogFile(logName, LogFile.Mode.Unique);
-            SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true), "", NETWORK_PATH, "", "");
+            NetworkDirTask.FileListEntry[] smbFiles = NetworkDirTask.syncFetch(SmbTestConfig.networkPath());
             if (smbFiles != null) {
-                for (SmbFile smbFile : smbFiles) {
+                for (NetworkDirTask.FileListEntry listEntry : smbFiles) {
+                    SmbFile smbFile = listEntry.file;
                     doSmbFileSpeedTest(smbFile, false, true, null);
                     doSmbFileSpeedTest(smbFile, true, sequential, results);
                     doSmbFileSpeedTest(smbFile, false, sequential, results);
                 }
             } else {
-                fail("Test Video folder not found, please edit NETWORK_PATH to point to a folder containing videos to test.");
+                fail("No test videos found");
             }
         }
     }
 
     private void doSmbFileSpeedTest(SmbFile smbFile, boolean useRandomAccess, boolean sequential, Results results) throws IOException {
-        int bufferSize = SmbUtil.getIdealReadBufferSize(smbFile, useRandomAccess);
-        BufferedMediaDataSource bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useRandomAccess, bufferSize);
+        BufferedMediaDataSource bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useRandomAccess);
         long length = bmds.getSize();
         Log.d(TAG_SPEED_TEST, "Testing: " + smbFile.getName() + " " + Utils.formatFileSize(length) + " Random: " + useRandomAccess + " Sequential Only:" + sequential);
         final int NumProgressSteps = 10;
         int nextLogStep = 0;
         long nextLogPos = 0;
         long startTime = System.currentTimeMillis();
-        byte[] buffer = new byte[bufferSize];
+        byte[] buffer = new byte[bmds.getBufferSize()];
         Random random = null;
         if (!sequential) {
             // Use a repeatable sequence per file

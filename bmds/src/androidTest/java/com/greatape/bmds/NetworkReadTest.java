@@ -15,9 +15,12 @@
 
 package com.greatape.bmds;
 
-import android.os.Build;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
+
+import com.greatape.bmds.smb.NetworkDirTask;
+import com.greatape.bmds.smb.SmbTestConfig;
+import com.greatape.bmds.smb.SmbUtil;
 
 import junit.framework.Assert;
 
@@ -26,41 +29,35 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.BufferedInputStream;
-import java.io.DataInput;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLConnection;
-import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
-import jcifs.smb.SmbRandomAccessFile;
 
-import static android.support.test.InstrumentationRegistry.getInstrumentation;
+import static junit.framework.Assert.assertTrue;
 
 /**
  * @author Steve Townsend
  */
 @RunWith(AndroidJUnit4.class)
 public class NetworkReadTest {
-    private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/Videos/";
     private static final String TAG = "NetworkReadTest";
 
     @Before
     public void grantInternetPermission() {
-        SmbUtil.grantPermission("INTERNET");
+        BmdsTestUtils.grantPermission("INTERNET");
     }
 
     @Test
     public void testNetworkPlay() throws Exception {
-        SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true),"", NETWORK_PATH, "", "");
+        NetworkDirTask.FileListEntry[] smbFiles = NetworkDirTask.syncFetch(SmbTestConfig.networkPath());
         if (smbFiles != null) {
             List<SmbTestInstance> instances = new ArrayList<>();
-            for (SmbFile smbFile : smbFiles) {
+            for (NetworkDirTask.FileListEntry listEntry : smbFiles) {
+                SmbFile smbFile = listEntry.file;
                 if (!smbFile.isFile()) {
                     Log.d(TAG, "Skipping: " + smbFile.getName());
                     continue;
@@ -75,11 +72,15 @@ public class NetworkReadTest {
                 byte[] contents1 = new byte[testInstance.smbFile.getContentLength()];
                 SmbFileInputStream fileIn = new SmbFileInputStream(testInstance.smbFile);
                 BufferedInputStream bis = new BufferedInputStream(fileIn);
-                bis.read(contents1, 0, contents1.length);
+                int totalRead = 0;
+                do {
+                    int read = bis.read(contents1, totalRead, contents1.length - totalRead);
+                    assertTrue("Failure reading BufferedInputStream, read=" + read, read > 0);
+                    totalRead += read;
+                } while(totalRead < contents1.length);
                 bis.close();
-                Assert.assertEquals(contents1.length, testInstance.buffer.length);
                 Log.d(TAG, "Comparing buffers");
-                Assert.assertTrue(Arrays.equals(contents1, testInstance.buffer));
+                BmdsTestUtils.assertBuffersEqual("Network play buffer compare", contents1, testInstance.buffer);
                 Log.d(TAG, "Finished buffer compare");
             }
         }
@@ -94,7 +95,7 @@ public class NetworkReadTest {
         SmbTestInstance(SmbFile smbFile, boolean useDataInput) throws IOException {
             this.smbFile = smbFile;
             this.buffer = new byte[(int)smbFile.length()];
-            bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useDataInput, 0);
+            bmds = SmbUtil.createBufferedMediaDataSource(smbFile, useDataInput);
         }
 
         void run() {

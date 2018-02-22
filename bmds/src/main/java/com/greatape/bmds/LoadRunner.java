@@ -132,7 +132,7 @@ class LoadRunner implements Runnable {
                             }
                         }
                         if (loadItem != null) {
-                            loadItem.setActive(true);
+                            loadItem.setActive();
                         }
                     }
                     if (loadItem != null) {

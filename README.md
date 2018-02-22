@@ -35,13 +35,17 @@ BufferedMediaDataSourceTest
 
 Demo App
 ========
-  The demo app is provided to test playing videos from the network. Currently you need to hand edit
- the path in the source code to specify the network drive you wish to play videos from, then enter
- username/password in the app to read a list of videos to play back.
+  The demo app is provided to test playing videos from the network. This can browse the network and
+  allow you to navigate to any available videos to test playback.
 
   Supplied sample videos are taken with thanks from http://www.sample-videos.com/
 
 JCIFS
 =====
-  The version of JCIFS used in the demo app is built from the 1.3.18 source with the 
- LargeReadWrite patch applied.
+   For Version 0.4 we've switched to using jcifs-ng from https://github.com/AgNO3/jcifs-ng/.
+
+   jcifs-ng is being actively developed and already has significant performance gains over the
+  original jcifs.
+
+   At the moment we're on an unreleased development build of 2.1.0, once there's an official release
+  we'll switch over to building against that.

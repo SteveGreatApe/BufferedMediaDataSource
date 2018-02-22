@@ -13,7 +13,9 @@
  * limitations under the License.
  */
 
-package com.greatape.bmds;
+package com.greatape.bmds.smb;
+
+import com.greatape.bmds.BufferedMediaDataSource;
 
 import java.io.DataInput;
 import java.io.IOException;
@@ -25,8 +27,8 @@ import jcifs.smb.SmbRandomAccessFile;
 /**
  * @author Steve Townsend
  */
-class SmbBufferedMediaDataSource extends BufferedMediaDataSource {
-    SmbBufferedMediaDataSource(SmbFile smbFile, BufferConfig bufferConfig) throws IOException {
+public class SmbBufferedMediaDataSource extends BufferedMediaDataSource {
+    public SmbBufferedMediaDataSource(SmbFile smbFile, BufferConfig bufferConfig) throws IOException {
         super(new DataInputCreator() {
             @Override
             public DataInput openDataInput() throws IOException {

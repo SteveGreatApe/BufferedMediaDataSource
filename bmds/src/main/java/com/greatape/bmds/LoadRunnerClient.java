@@ -59,12 +59,10 @@ class LoadRunnerClient {
             }
         }
         if (waitForClose != null) {
-            synchronized (waitForClose) {
-                try {
-                    waitForClose.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            try {
+                waitForClose.acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -175,8 +173,8 @@ class LoadRunnerClient {
             return null;
         }
 
-        void setActive(boolean active) {
-            isActive = active;
+        void setActive() {
+            isActive = true;
         }
     }
 }

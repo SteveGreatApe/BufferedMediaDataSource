@@ -98,7 +98,7 @@ public class DummyStreamSource extends InputStream {
             loadTime += loadDelay;
         }
         mTotalSkipBytes += skipLen;
-        if (mSkipPerMegabyte != null) {
+        if (mSkipPerMegabyte != null && skipLen > 0) {
             long skipDelay = skipLen * mSkipPerMegabyte.rand() / Megabyte;
             mTotalSkipDelay += skipDelay;
             loadTime += skipDelay;

@@ -18,6 +18,9 @@ package com.greatape.bmds;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import com.greatape.bmds.smb.NetworkDirTask;
+import com.greatape.bmds.smb.SmbTestConfig;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +41,6 @@ import static junit.framework.Assert.fail;
  */
 @RunWith(AndroidJUnit4.class)
 public class NetworkMediaPlayerTest extends MediaPlayerTest {
-    //private static final String NETWORK_PATH = "smb://EUROAPE/Users/Public/Videos/";
-    private static final String NETWORK_PATH = "smb://SILENTAPE/Public//";
 
     @Before
     public void grantInternetPermission() {
@@ -49,9 +50,10 @@ public class NetworkMediaPlayerTest extends MediaPlayerTest {
     @Test
     public void testNetworkPlay() throws Exception {
         initSmbConfig();
-        SmbFile[] smbFiles = NetworkDirTask.syncFetch(SmbUtil.baseContext(true),"", NETWORK_PATH, "", "");
+        NetworkDirTask.FileListEntry[] smbFiles = NetworkDirTask.syncFetch(SmbTestConfig.networkPath());
         if (smbFiles != null) {
-            for(SmbFile smbFile : smbFiles) {
+            for(NetworkDirTask.FileListEntry listEntry : smbFiles) {
+                SmbFile smbFile = listEntry.file;
                 String mimeType = URLConnection.guessContentTypeFromName(smbFile.getName());
                 if (mimeType != null && mimeType.startsWith(MIME_VIDEO)) {
                     if (smbFile.getName().contains("A720")) {

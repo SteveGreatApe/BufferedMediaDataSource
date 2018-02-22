@@ -104,7 +104,7 @@ public class SmbUtil {
         try {
             SmbFile smbFile = new SmbFile(path, baseContext(false));
             int type = getType(smbFile);
-            // Note: TYPE_WORKGROUP is also returned for the toor
+            // Note: TYPE_WORKGROUP is also returned for the root
             if (type == SmbFile.TYPE_WORKGROUP) {
                 isRootOrWorkgroup = true;
             }

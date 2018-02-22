@@ -203,4 +203,8 @@ public class BufferedMediaDataSource extends MediaDataSource {
     ReadStats getReadStats() {
         return mMediaCache.getReadStats();
     }
+
+    public int getBufferSize() {
+        return mMediaCache.getBufferSize();
+    }
 }
